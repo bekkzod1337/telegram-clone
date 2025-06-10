@@ -5,7 +5,7 @@ export default function Sidebar({ users, activeUser, onSelect, onDeleteChat, cur
   const [searchTerm, setSearchTerm] = useState('')
 
   const filteredUsers = users.filter((u) =>
-    u.username.toLowerCase().includes(searchTerm.toLowerCase())
+    u.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
@@ -27,7 +27,7 @@ export default function Sidebar({ users, activeUser, onSelect, onDeleteChat, cur
             }`}
             onClick={() => onSelect(u)}
           >
-            <span>{u.username}</span>
+            <span className="truncate">{u.email}</span>
             <button
               onClick={(e) => {
                 e.stopPropagation()
