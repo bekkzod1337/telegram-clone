@@ -8,3 +8,21 @@
     animation: fade-in 0.2s ease-out both;
   }
 }
+
+@keyframes typingBounce {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+.typing-dots > span {
+  animation-name: typingBounce;
+  animation-duration: 1.4s;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}

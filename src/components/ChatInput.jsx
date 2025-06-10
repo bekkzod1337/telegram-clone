@@ -1,6 +1,4 @@
-import { useState } from 'react';
-
-export default function ChatInput({ channel }) {
+export default function ChatInput({ channel, user }) {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -11,7 +9,7 @@ export default function ChatInput({ channel }) {
       await fetch('/api/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channel, message: { text: text.trim(), user: 'Bekzod', time: Date.now() } }),
+        body: JSON.stringify({ channel, message: { text: text.trim(), user, time: Date.now() } }),
       });
       setText('');
     } catch (error) {
@@ -39,10 +37,13 @@ export default function ChatInput({ channel }) {
         placeholder="Xabar yozing..."
         rows={2}
         disabled={loading}
+        autoFocus
       />
       <button
         onClick={sendMessage}
-        className={`px-4 py-2 rounded text-white ${loading || !text.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}
+        className={`px-4 py-2 rounded text-white ${
+          loading || !text.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'
+        }`}
         disabled={loading || !text.trim()}
       >
         {loading ? 'Yuborilmoqda...' : 'Yuborish'}

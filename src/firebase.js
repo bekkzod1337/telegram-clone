@@ -11,7 +11,7 @@ import {
   doc,
 } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
-
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 const firebaseConfig = {
   apiKey: "AIzaSyCcxb6gJxS2Q47SkJQ4fM0yqO1eeDyNMzc",
   authDomain: "telegram-clone-b6b68.firebaseapp.com",
@@ -28,7 +28,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const analytics = getAnalytics(app);
 const provider = new GoogleAuthProvider();
-
+const storage = getStorage(app);
 export {
   app,
   auth,
@@ -44,4 +44,8 @@ export {
   getDocs,
   setDoc,
   doc,
+  storage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
 };

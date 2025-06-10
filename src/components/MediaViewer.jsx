@@ -1,22 +1,30 @@
-// components/MediaViewer.jsx
-import { Dialog, DialogContent } from '@mui/material';
+import { Dialog, DialogContent } from '@mui/material'
 
 export default function MediaViewer({ open, onClose, src, type, alt = 'media content' }) {
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      aria-labelledby="media-viewer-title"
+    >
       <DialogContent>
         {type === 'image' ? (
-          <img 
-            src={src} 
-            alt={alt} 
-            style={{ width: '100%', borderRadius: 8 }} 
-            loading="lazy" 
+          <img
+            src={src}
+            alt={alt}
+            loading="lazy"
+            style={{ width: '100%', borderRadius: 8, objectFit: 'contain' }}
+            onError={(e) => {
+              e.currentTarget.src = '/fallback-image.png' // fallback rasm URL
+            }}
           />
         ) : (
-          <video 
-            controls 
-            style={{ width: '100%' }} 
+          <video
+            controls
             preload="metadata"
+            style={{ width: '100%', borderRadius: 8 }}
+            aria-label={alt}
           >
             <source src={src} type="video/mp4" />
             Video qo‘llab-quvvatlanmaydi.
@@ -24,5 +32,5 @@ export default function MediaViewer({ open, onClose, src, type, alt = 'media con
         )}
       </DialogContent>
     </Dialog>
-  );
+  )
 }
