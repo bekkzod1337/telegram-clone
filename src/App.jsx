@@ -11,7 +11,6 @@ import {
   getDoc,
   collection,
   query,
-  where,
   getDocs,
   addDoc,
   orderBy,
@@ -20,37 +19,36 @@ import {
   deleteDoc
 } from 'firebase/firestore'
 
-import UserSearch from './components/UserSearch'
 import Sidebar from './components/Sidebar'
 import ChatWindow from './components/ChatWindow'
 import DeleteChatModal from './components/DeleteChatModal'
 import NotificationToast from './components/NotificationToast'
 
 export default function App() {
-  const [user, setUser] = useState(null) // Google User (auth)
-  const [username, setUsername] = useState('') // chosen username
-  const [users, setUsers] = useState([]) // all users for sidebar
-  const [activeChatUser, setActiveChatUser] = useState(null) // chatting with who
-  const [messages, setMessages] = useState([]) // current chat messages
+  const [user, setUser] = useState(null)
+  const [users, setUsers] = useState([])
+  const [activeChatUser, setActiveChatUser] = useState(null)
+  const [messages, setMessages] = useState([])
   const [chatToDelete, setChatToDelete] = useState(null)
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' })
 
-  // Auth State Listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser)
-        // Check if user has username in Firestore
-        const userDoc = await getDoc(doc(db, 'usernames', currentUser.uid))
-        if (userDoc.exists()) {
-          setUsername(userDoc.data().username)
-          loadUsers()
-        } else {
-          setUsername('') // no username yet
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid))
+        if (!userDoc.exists()) {
+          await setDoc(doc(db, 'users', currentUser.uid), {
+            uid: currentUser.uid,
+            email: currentUser.email,
+            displayName: currentUser.displayName,
+            photoURL: currentUser.photoURL || '',
+            createdAt: serverTimestamp(),
+          })
         }
+        loadUsers(currentUser.uid)
       } else {
         setUser(null)
-        setUsername('')
         setUsers([])
         setActiveChatUser(null)
       }
@@ -58,20 +56,18 @@ export default function App() {
     return unsubscribe
   }, [])
 
-  // Load all usernames for sidebar
-  const loadUsers = async () => {
-    const q = query(collection(db, 'usernames'), orderBy('username'))
+  const loadUsers = async (currentUid) => {
+    const q = query(collection(db, 'users'), orderBy('email'))
     const querySnapshot = await getDocs(q)
     const allUsers = []
     querySnapshot.forEach((doc) => {
-      if (doc.id !== user.uid) {
-        allUsers.push({ uid: doc.id, username: doc.data().username })
+      if (doc.id !== currentUid) {
+        allUsers.push({ uid: doc.id, ...doc.data() })
       }
     })
     setUsers(allUsers)
   }
 
-  // Google sign in
   const handleGoogleLogin = async () => {
     try {
       await signInWithPopup(auth, provider)
@@ -80,51 +76,25 @@ export default function App() {
     }
   }
 
-  // Sign out
   const handleLogout = async () => {
     await signOut(auth)
-    setUsername('')
     setUser(null)
     setUsers([])
     setActiveChatUser(null)
   }
 
-  // Save chosen username
-  const handleSaveUsername = async () => {
-    if (!username.trim()) return alert('Username kiriting')
-    // Check if username already exists
-    const q = query(collection(db, 'usernames'), where('username', '==', username))
-    const querySnapshot = await getDocs(q)
-    if (!querySnapshot.empty) {
-      alert('Bu username band, boshqasini tanlang')
-      return
-    }
-    try {
-      await setDoc(doc(db, 'usernames', user.uid), {
-        username,
-        createdAt: serverTimestamp(),
-      })
-      setNotification({ open: true, message: 'Username saqlandi', severity: 'success' })
-      loadUsers()
-    } catch (e) {
-      alert('Xatolik yuz berdi: ' + e.message)
-    }
+  const getChatId = (uid1, uid2) => {
+    return uid1 > uid2 ? uid1 + '_' + uid2 : uid2 + '_' + uid1
   }
 
-  // Select user to chat with
   useEffect(() => {
     if (!activeChatUser) {
       setMessages([])
       return
     }
 
-    // Subscribe to messages between current user and activeChatUser
     const chatId = getChatId(user.uid, activeChatUser.uid)
-
-    const q = query(
-      collection(db, 'chats', chatId, 'messages'),
-      orderBy('createdAt')
-    )
+    const q = query(collection(db, 'chats', chatId, 'messages'), orderBy('createdAt'))
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgs = []
@@ -137,12 +107,6 @@ export default function App() {
     return () => unsubscribe()
   }, [activeChatUser, user])
 
-  // Generate consistent chatId from two uids
-  const getChatId = (uid1, uid2) => {
-    return uid1 > uid2 ? uid1 + '_' + uid2 : uid2 + '_' + uid1
-  }
-
-  // Send message
   const handleSendMessage = async (text) => {
     if (!text.trim() || !activeChatUser) return
     const chatId = getChatId(user.uid, activeChatUser.uid)
@@ -158,17 +122,14 @@ export default function App() {
     }
   }
 
-  // Delete chat
   const handleDeleteChat = (uidToDelete) => {
     setChatToDelete(uidToDelete)
   }
 
-  // Confirm delete chat
   const confirmDeleteChat = async () => {
     if (!chatToDelete) return
     const chatId = getChatId(user.uid, chatToDelete)
     try {
-      // Delete all messages in chat
       const msgsRef = collection(db, 'chats', chatId, 'messages')
       const msgsSnapshot = await getDocs(msgsRef)
       const batch = []
@@ -176,7 +137,6 @@ export default function App() {
         batch.push(deleteDoc(doc(db, 'chats', chatId, 'messages', docSnap.id)))
       })
       await Promise.all(batch)
-
       setChatToDelete(null)
       if (activeChatUser?.uid === chatToDelete) setActiveChatUser(null)
       setNotification({ open: true, message: 'Chat o‘chirildi', severity: 'warning' })
@@ -188,38 +148,8 @@ export default function App() {
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
-        <button
-          onClick={handleGoogleLogin}
-          className="bg-blue-600 text-white px-6 py-3 rounded"
-        >
+        <button onClick={handleGoogleLogin} className="bg-blue-600 text-white px-6 py-3 rounded">
           Google bilan kirish
-        </button>
-      </div>
-    )
-  }
-
-  if (!username) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen space-y-4">
-        <h2 className="text-xl font-semibold">Username tanlang</h2>
-        <input
-          type="text"
-          placeholder="Username kiriting"
-          value={username}
-          onChange={(e) => setUsername(e.target.value.toLowerCase())}
-          className="border p-2 rounded w-64"
-        />
-        <button
-          onClick={handleSaveUsername}
-          className="bg-green-600 text-white px-4 py-2 rounded"
-        >
-          Saqlash
-        </button>
-        <button
-          onClick={handleLogout}
-          className="text-red-600 underline mt-2"
-        >
-          Chiqish
         </button>
       </div>
     )
@@ -245,15 +175,13 @@ export default function App() {
           Chat tanlanmagan
         </div>
       )}
-
       {chatToDelete !== null && (
         <DeleteChatModal
-          username={users.find((u) => u.uid === chatToDelete)?.username}
+          username={users.find((u) => u.uid === chatToDelete)?.email}
           onClose={() => setChatToDelete(null)}
           onConfirm={confirmDeleteChat}
         />
       )}
-
       <NotificationToast
         open={notification.open}
         onClose={() => setNotification({ ...notification, open: false })}
