@@ -1,6 +1,5 @@
-export default function UserProfileModal({ name, isOnline, onClose }) {
+export default function UserProfileModal({ name, isOnline, photoURL, onClose }) {
   const handleBackdropClick = (e) => {
-    // faqat tashqi fon bosilganda yopish
     if (e.target === e.currentTarget) {
       onClose();
     }
@@ -20,9 +19,17 @@ export default function UserProfileModal({ name, isOnline, onClose }) {
           ×
         </button>
         <div className="flex flex-col items-center gap-3">
-          <div className="w-24 h-24 rounded-full bg-gray-300 flex items-center justify-center text-3xl font-bold">
-            {name?.charAt(0).toUpperCase()}
-          </div>
+          {photoURL ? (
+            <img
+              src={photoURL}
+              alt={`${name} profile`}
+              className="w-24 h-24 rounded-full object-cover border"
+            />
+          ) : (
+            <div className="w-24 h-24 rounded-full bg-gray-300 flex items-center justify-center text-3xl font-bold">
+              {name?.charAt(0).toUpperCase()}
+            </div>
+          )}
           <div className="text-xl font-semibold">{name}</div>
           <div className={`text-sm ${isOnline ? 'text-green-500' : 'text-gray-500'}`}>
             {isOnline ? 'online' : 'offline'}

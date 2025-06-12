@@ -1,6 +1,7 @@
 // src/firebase.js
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import { getDatabase } from 'firebase/database'
 import {
   getFirestore,
   collection,
@@ -20,6 +21,7 @@ const firebaseConfig = {
   messagingSenderId: "634641069343",
   appId: "1:634641069343:web:4a8a8ebf8a9c90ddee2c2a",
   measurementId: "G-C7JCHMY3HD",
+  databaseURL: 'https://telegram-clone-b6b68-default-rtdb.firebaseio.com'
 };
 
 // Initialize Firebase
@@ -49,3 +51,4 @@ export {
   uploadBytes,
   getDownloadURL,
 };
+export const realtimeDb = getDatabase(app)

@@ -9,6 +9,7 @@ export default function MessageBubble({
   onRequestDelete,
 }) {
   const [showMenu, setShowMenu] = useState(false);
+  const isSent = !!timestamp;
 
   return (
     <div
@@ -26,7 +27,8 @@ export default function MessageBubble({
         {/* Vaqt va status */}
         <div className="flex items-center justify-end gap-1 text-xs text-gray-300 mt-1 select-none">
           <span>{timestamp}</span>
-          {isOwn && <MessageStatusIndicator sent={sent} />}
+          {isOwn && <MessageStatusIndicator sent={isSent} />}
+
         </div>
 
         {/* O'chirish tugmasi */}

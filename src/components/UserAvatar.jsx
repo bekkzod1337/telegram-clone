@@ -1,22 +1,27 @@
-export default function UserAvatar({ name = '' }) {
-  // Ism bo'sh yoki noto'g'ri kelsa default belgini ko'rsatamiz
+export default function UserAvatar({ name = '', photoURL }) {
   const initials = name
     ? name
         .split(' ')
-        .filter(Boolean) // bo'sh satrlarni olib tashlash
+        .filter(Boolean)
         .map((n) => n[0])
-        .slice(0, 2) // faqat 2 harf olamiz (masalan, "John Doe" -> "JD")
+        .slice(0, 2)
         .join('')
         .toUpperCase()
-    : '?'
+    : '?';
 
-  return (
+  return photoURL ? (
+    <img
+      src={photoURL}
+      alt={name}
+      className="w-10 h-10 rounded-full object-cover"
+      title={name}
+    />
+  ) : (
     <div
       className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold select-none"
       title={name || 'Foydalanuvchi'}
-      aria-label={`Foydalanuvchi avatar, ismi: ${name}`}
     >
       {initials}
     </div>
-  )
+  );
 }

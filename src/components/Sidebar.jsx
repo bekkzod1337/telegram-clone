@@ -8,6 +8,7 @@ export default function Sidebar({
   onSelect,
   onDeleteChat,
   currentUserUid,
+  userStatusMap, // ✅ Qo‘shildi
 }) {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -45,30 +46,35 @@ export default function Sidebar({
         </div>
       ) : (
         <ul>
-          {filteredUsers.map((u) => (
-            <li
-              key={u.uid}
-              className={`relative group transition-colors ${
-                activeUser?.uid === u.uid ? `${theme.activeBg}` : ''
-              }`}
-            >
-              <ChatListItem
-                name={u.email}
-                lastMessage={u.lastMessage?.text || 'Yangi suhbat'}
-                onClick={() => onSelect(u)}
-              />
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteChat(u.uid);
-                }}
-                className={`absolute top-1/2 -translate-y-1/2 right-4 z-10 text-sm rounded focus:outline-none focus:ring-2 ${theme.deleteBtn}`}
-                title={`O'chirish: ${u.email}`}
+          {filteredUsers.map((u) => {
+            const isOnline = userStatusMap?.[u.uid]?.isOnline;
+            return (
+              <li
+                key={u.uid}
+                className={`relative group transition-colors ${
+                  activeUser?.uid === u.uid ? `${theme.activeBg}` : ''
+                }`}
               >
-                &#x2715;
-              </button>
-            </li>
-          ))}
+                <ChatListItem
+                  name={u.email}
+                  photoURL={u.photoURL}
+                  lastMessage={u.lastMessage?.text || 'Yangi suhbat'}
+                  onClick={() => onSelect(u)}
+                  isOnline={isOnline} // ✅ Qo‘shildi
+                />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteChat(u.uid);
+                  }}
+                  className={`absolute top-1/2 -translate-y-1/2 right-4 z-10 text-sm rounded focus:outline-none focus:ring-2 ${theme.deleteBtn}`}
+                  title={`O'chirish: ${u.email}`}
+                >
+                  &#x2715;
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

@@ -25,12 +25,14 @@ export default function AuthWithEmail({ onLogin }) {
         const userSnap = await getDoc(userDoc)
 
         if (!userSnap.exists()) {
-          await setDoc(userDoc, {
-            uid: currentUser.uid,
-            displayName: currentUser.displayName,
-            email: currentUser.email,
-          })
-        }
+  await setDoc(userDoc, {
+    uid: currentUser.uid,
+    displayName: currentUser.displayName,
+    email: currentUser.email,
+    photoURL: currentUser.photoURL, // <--- SHU QATORNI QO‘SHING
+  })
+}
+
 
         if (typeof onLogin === 'function') {
           onLogin(currentUser)

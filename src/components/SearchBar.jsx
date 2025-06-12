@@ -1,6 +1,6 @@
-import { TextField } from '@mui/material'
+import { TextField } from '@mui/material';
 
-export default function SearchBar({ onSearch }) {
+export default function SearchBar({ onSearch, darkMode = false }) {
   return (
     <TextField
       placeholder="Email orqali qidiruv..."
@@ -12,11 +12,11 @@ export default function SearchBar({ onSearch }) {
         my: 1,
         '& .MuiOutlinedInput-root': {
           borderRadius: 2,
-          backgroundColor: '#f5f7fa',
+          backgroundColor: darkMode ? '#1f2937' : '#f5f7fa', // 🔄 fon rangi
           paddingRight: '8px',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+          boxShadow: darkMode ? 'none' : '0 2px 6px rgba(0,0,0,0.1)',
           '& fieldset': {
-            borderColor: '#cbd5e1',
+            borderColor: darkMode ? '#374151' : '#cbd5e1',
           },
           '&:hover fieldset': {
             borderColor: '#3f51b5',
@@ -29,14 +29,14 @@ export default function SearchBar({ onSearch }) {
         '& input': {
           padding: '12px 14px',
           fontSize: '16px',
-          color: '#333',
+          color: darkMode ? '#f3f4f6' : '#333',
           '&::placeholder': {
-            color: '#999',
+            color: darkMode ? '#9ca3af' : '#999',
             opacity: 1,
             fontStyle: 'italic',
           },
         },
       }}
     />
-  )
+  );
 }

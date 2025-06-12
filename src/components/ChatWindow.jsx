@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import ChatHeader from './ChatHeader';
 import MessageBubble from './MessageBubble'; // import qiling
 
-export default function ChatWindow({ user, messages, onSend }) {
+export default function ChatWindow({ user, messages, onSend, currentUserUid }) {
+
   const [text, setText] = useState('');
 
   const handleSendText = () => {
@@ -19,24 +20,26 @@ export default function ChatWindow({ user, messages, onSend }) {
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-gray-100">
-      <ChatHeader />
+      <ChatHeader name={user.displayName} photoURL={user.photoURL} />
+
 
       {/* Xabarlar oynasi */}
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3">
         {messages.map((msg) => (
           <MessageBubble
-            key={msg.id}
-            text={msg.text}
-            isOwn={msg.senderId === user.uid}
-            timestamp={
-              msg.createdAt?.toDate?.()?.toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              }) || ''
-            }
-            sent={!!msg.sent} // optional flag
-            onRequestDelete={() => handleDeleteMessage(msg.id)}
-          />
+  key={msg.id}
+  text={msg.text}
+  isOwn={msg.senderId === currentUserUid}
+  timestamp={
+    msg.createdAt?.toDate?.()?.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    }) || ''
+  }
+  sent={!!msg.sent}
+  onRequestDelete={() => handleDeleteMessage(msg.id)}
+/>
+
         ))}
       </div>
 

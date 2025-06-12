@@ -1,31 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { auth, provider, db } from './firebase'
-import {
-  signInWithPopup,
-  onAuthStateChanged,
-  signOut
-} from 'firebase/auth'
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL
-} from 'firebase/storage';
-
-import { storage } from './firebase';
-import {
-  doc,
-  setDoc,
-  getDoc,
-  collection,
-  query,
-  getDocs,
-  addDoc,
-  orderBy,
-  serverTimestamp,
-  onSnapshot,
-  deleteDoc
-} from 'firebase/firestore'
-
+import {auth,provider,db,realtimeDb } from './firebase'
+import {signInWithPopup,onAuthStateChanged,signOut} from 'firebase/auth'
+import {ref as storageRef,uploadBytes,getDownloadURL} from 'firebase/storage'
+import { storage } from './firebase'
+import {doc,setDoc,getDoc,collection,query,getDocs,addDoc,orderBy,serverTimestamp,onSnapshot,deleteDoc} from 'firebase/firestore'
+import {ref as rtdbRef,onDisconnect,onValue,set} from 'firebase/database'
 import Sidebar from './components/Sidebar'
 import ChatWindow from './components/ChatWindow'
 import DeleteChatModal from './components/DeleteChatModal'
@@ -34,37 +13,59 @@ import NotificationToast from './components/NotificationToast'
 export default function App() {
   const [user, setUser] = useState(null)
   const [users, setUsers] = useState([])
+  const [userStatusMap, setUserStatusMap] = useState({})
   const [activeChatUser, setActiveChatUser] = useState(null)
   const [messages, setMessages] = useState([])
-  const [pinnedMessages, setPinnedMessages] = useState([])  // Qo'shildi
+  const [pinnedMessages, setPinnedMessages] = useState([])
   const [chatToDelete, setChatToDelete] = useState(null)
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' })
 
-  
+    const saveUserToRealtimeDb = (user) => {
+  set(rtdbRef(realtimeDb, 'users/' + user.uid), {
+    email: user.email,
+    photoURL: user.photoURL || null,
+    lastMessage: null
+  });
+};
+
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser)
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid))
-        if (!userDoc.exists()) {
-          await setDoc(doc(db, 'users', currentUser.uid), {
-            uid: currentUser.uid,
-            email: currentUser.email,
-            displayName: currentUser.displayName,
-            photoURL: currentUser.photoURL || '',
-            createdAt: serverTimestamp(),
-          })
-        }
-        loadUsers(currentUser.uid)
-      } else {
-        setUser(null)
-        setUsers([])
-        setActiveChatUser(null)
+  const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    if (currentUser) {
+      setUser(currentUser)
+
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid))
+      if (!userDoc.exists()) {
+        await setDoc(doc(db, 'users', currentUser.uid), {
+          uid: currentUser.uid,
+          email: currentUser.email,
+          displayName: currentUser.displayName,
+          photoURL: currentUser.photoURL || '',
+          createdAt: serverTimestamp()
+        })
       }
-    })
-    return unsubscribe
-  }, [])
+
+      // ✅ Foydalanuvchini Realtime DB ga saqlash
+      saveUserToRealtimeDb(currentUser)
+
+      // ✅ Realtime DB orqali online statusni sozlash
+      const statusRef = rtdbRef(realtimeDb, `usersStatus/${currentUser.uid}`)
+      await set(statusRef, { isOnline: true })
+      onDisconnect(statusRef).set({ isOnline: false })
+
+      loadUsers(currentUser.uid)
+      listenToUserStatuses()
+    } else {
+      setUser(null)
+      setUsers([])
+      setUserStatusMap({})
+      setActiveChatUser(null)
+    }
+  })
+
+  return unsubscribe
+}, [])
+
 
   const loadUsers = async (currentUid) => {
     const q = query(collection(db, 'users'), orderBy('email'))
@@ -78,65 +79,70 @@ export default function App() {
     setUsers(allUsers)
   }
 
-
-
-const handleSendMessage = async (text, audioFile = null) => {
-  if ((!text.trim() && !audioFile) || !activeChatUser) return;
-
-  const chatId = getChatId(user.uid, activeChatUser.uid);
-  let audioUrl = null;
-
-  if (audioFile) {
-    const audioRef = ref(storage, `voiceMessages/${Date.now()}_${audioFile.name}`);
-    const snapshot = await uploadBytes(audioRef, audioFile);
-    audioUrl = await getDownloadURL(snapshot.ref);
-  }
-
-  try {
-    await addDoc(collection(db, 'chats', chatId, 'messages'), {
-      text: text || '',
-      audioUrl: audioUrl || null,
-      senderId: user.uid,
-      createdAt: serverTimestamp(),
-    });
-    setNotification({ open: true, message: 'Xabar yuborildi', severity: 'success' });
-  } catch (e) {
-    alert('Xabar yuborishda xatolik: ' + e.message);
-  }
-};
-
-
-
-  const handleGoogleLogin = async () => {
-    try {
-      await signInWithPopup(auth, provider)
-    } catch (error) {
-      alert('Kirishda xatolik: ' + error.message)
-    }
-  }
-
-  const handleLogout = async () => {
-    await signOut(auth)
-    setUser(null)
-    setUsers([])
-    setActiveChatUser(null)
+  const listenToUserStatuses = () => {
+    const statusRef = rtdbRef(realtimeDb, 'usersStatus')
+    onValue(statusRef, (snapshot) => {
+      const data = snapshot.val() || {}
+      setUserStatusMap(data)
+    })
   }
 
   const getChatId = (uid1, uid2) => {
     return uid1 > uid2 ? uid1 + '_' + uid2 : uid2 + '_' + uid1
   }
 
-  // Xabarlarni tinglash
+  const handleSendMessage = async (text, audioFile = null) => {
+    if ((!text.trim() && !audioFile) || !activeChatUser) return
+
+    const chatId = getChatId(user.uid, activeChatUser.uid)
+    let audioUrl = null
+
+    if (audioFile) {
+      const audioRef = storageRef(storage, `voiceMessages/${Date.now()}_${audioFile.name}`)
+      const snapshot = await uploadBytes(audioRef, audioFile)
+      audioUrl = await getDownloadURL(snapshot.ref)
+    }
+
+    try {
+      await addDoc(collection(db, 'chats', chatId, 'messages'), {
+        text: text || '',
+        audioUrl: audioUrl || null,
+        senderId: user.uid,
+        createdAt: serverTimestamp()
+      })
+      setNotification({ open: true, message: 'Xabar yuborildi', severity: 'success' })
+    } catch (e) {
+      alert('Xabar yuborishda xatolik: ' + e.message)
+    }
+  }
+const handleGoogleLogin = async () => {
+  try {
+    await signInWithPopup(auth, provider)
+  } catch (error) {
+    alert('Kirishda xatolik: ' + error.message)
+  }
+}
+
+  const handleLogout = async () => {
+    const statusRef = rtdbRef(realtimeDb, `usersStatus/${user.uid}`)
+    await set(statusRef, { isOnline: false })
+    await signOut(auth)
+    setUser(null)
+    setUsers([])
+    setUserStatusMap({})
+    setActiveChatUser(null)
+  }
+
   useEffect(() => {
     if (!activeChatUser) {
       setMessages([])
-      setPinnedMessages([])  // Faollashmaganida bo‘shqatamiz
+      setPinnedMessages([])
       return
     }
+console.log('USERS:', users);
 
     const chatId = getChatId(user.uid, activeChatUser.uid)
 
-    // Oddiy xabarlar
     const qMessages = query(collection(db, 'chats', chatId, 'messages'), orderBy('createdAt'))
     const unsubscribeMessages = onSnapshot(qMessages, (snapshot) => {
       const msgs = []
@@ -146,7 +152,6 @@ const handleSendMessage = async (text, audioFile = null) => {
       setMessages(msgs)
     })
 
-    // Pinned messages
     const qPinned = query(collection(db, 'chats', chatId, 'pinnedMessages'), orderBy('createdAt'))
     const unsubscribePinned = onSnapshot(qPinned, (snapshot) => {
       const pins = []
@@ -159,7 +164,22 @@ const handleSendMessage = async (text, audioFile = null) => {
       unsubscribePinned()
     }
   }, [activeChatUser, user])
+useEffect(() => {
+  if (!user) return
 
+  const handleBeforeUnload = async () => {
+    const statusRef = rtdbRef(realtimeDb, `usersStatus/${user.uid}`)
+    await set(statusRef, { isOnline: false })
+  }
+
+  window.addEventListener('beforeunload', handleBeforeUnload)
+
+
+
+  return () => {
+    window.removeEventListener('beforeunload', handleBeforeUnload)
+  }
+}, [user])
 
   const handleDeleteChat = (uidToDelete) => {
     setChatToDelete(uidToDelete)
@@ -176,9 +196,6 @@ const handleSendMessage = async (text, audioFile = null) => {
         batch.push(deleteDoc(doc(db, 'chats', chatId, 'messages', docSnap.id)))
       })
       await Promise.all(batch)
-
-      // Agar deleteForOther true bo'lsa, boshqalar uchun ham o'chirish (boshqa logika kerak bo'lishi mumkin)
-      // Hozircha faqat o'z chatimizni o'chiramiz
 
       setChatToDelete(null)
       if (activeChatUser?.uid === chatToDelete) setActiveChatUser(null)
@@ -206,20 +223,18 @@ const handleSendMessage = async (text, audioFile = null) => {
         onSelect={setActiveChatUser}
         onDeleteChat={handleDeleteChat}
         currentUserUid={user.uid}
+        userStatusMap={userStatusMap}
         onLogout={handleLogout}
       />
-
       <div className="flex flex-col flex-1">
-        {/* Pinned messages panel */}
-        
-
         {activeChatUser ? (
           <ChatWindow
-  user={activeChatUser}
-  messages={messages}
-  onSend={handleSendMessage}
-/>
-
+            user={activeChatUser}
+            messages={messages}
+            onSend={handleSendMessage}
+            currentUserUid={user.uid}
+            userStatusMap={userStatusMap}
+          />
         ) : (
           <div className="flex-1 flex items-center bg-gray-800 justify-center text-gray-500">
             Chat tanlanmagan
