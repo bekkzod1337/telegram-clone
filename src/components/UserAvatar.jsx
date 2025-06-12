@@ -1,4 +1,8 @@
+import { useState } from 'react';
+
 export default function UserAvatar({ name = '', photoURL }) {
+  const [imageError, setImageError] = useState(false);
+
   const initials = name
     ? name
         .split(' ')
@@ -9,17 +13,20 @@ export default function UserAvatar({ name = '', photoURL }) {
         .toUpperCase()
     : '?';
 
-  return photoURL ? (
+  const title = name || 'Foydalanuvchi';
+
+  return photoURL && !imageError ? (
     <img
       src={photoURL}
-      alt={name}
+      alt={title}
+      onError={() => setImageError(true)} // Fallback agar rasm yuklanmasa
       className="w-10 h-10 rounded-full object-cover"
-      title={name}
+      title={title}
     />
   ) : (
     <div
       className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold select-none"
-      title={name || 'Foydalanuvchi'}
+      title={title}
     >
       {initials}
     </div>

@@ -1,10 +1,41 @@
 import React, { useEffect, useState } from 'react'
-import {auth,provider,db,realtimeDb } from './firebase'
-import {signInWithPopup,onAuthStateChanged,signOut} from 'firebase/auth'
-import {ref as storageRef,uploadBytes,getDownloadURL} from 'firebase/storage'
-import { storage } from './firebase'
-import {doc,setDoc,getDoc,collection,query,getDocs,addDoc,orderBy,serverTimestamp,onSnapshot,deleteDoc} from 'firebase/firestore'
-import {ref as rtdbRef,onDisconnect,onValue,set} from 'firebase/database'
+import {
+  auth,
+  provider,
+  db,
+  realtimeDb,
+  storage
+} from './firebase'
+import {
+  signInWithPopup,
+  onAuthStateChanged,
+  signOut
+} from 'firebase/auth'
+import {
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  query,
+  getDocs,
+  addDoc,
+  orderBy,
+  serverTimestamp,
+  onSnapshot,
+  deleteDoc
+} from 'firebase/firestore'
+import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL
+} from 'firebase/storage'
+import {
+  ref as rtdbRef,
+  onDisconnect,
+  onValue,
+  set
+} from 'firebase/database'
+
 import Sidebar from './components/Sidebar'
 import ChatWindow from './components/ChatWindow'
 import DeleteChatModal from './components/DeleteChatModal'
@@ -20,52 +51,50 @@ export default function App() {
   const [chatToDelete, setChatToDelete] = useState(null)
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' })
 
-    const saveUserToRealtimeDb = (user) => {
-  set(rtdbRef(realtimeDb, 'users/' + user.uid), {
-    email: user.email,
-    photoURL: user.photoURL || null,
-    lastMessage: null
-  });
-};
-
+  const saveUserToRealtimeDb = (user) => {
+    set(rtdbRef(realtimeDb, 'users/' + user.uid), {
+      email: user.email,
+      photoURL: user.photoURL || null,
+      lastMessage: null
+    })
+  }
 
   useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-    if (currentUser) {
-      setUser(currentUser)
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser)
 
-      const userDoc = await getDoc(doc(db, 'users', currentUser.uid))
-      if (!userDoc.exists()) {
-        await setDoc(doc(db, 'users', currentUser.uid), {
-          uid: currentUser.uid,
-          email: currentUser.email,
-          displayName: currentUser.displayName,
-          photoURL: currentUser.photoURL || '',
-          createdAt: serverTimestamp()
-        })
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid))
+        if (!userDoc.exists()) {
+          await setDoc(doc(db, 'users', currentUser.uid), {
+            uid: currentUser.uid,
+            email: currentUser.email,
+            displayName: currentUser.displayName,
+            photoURL: currentUser.photoURL || '',
+            createdAt: serverTimestamp()
+          })
+        }
+
+        saveUserToRealtimeDb(currentUser)
+
+        const statusRef = rtdbRef(realtimeDb, `usersStatus/${currentUser.uid}`)
+        await set(statusRef, { isOnline: true })
+console.log('🟢 Status set to online:', currentUser.uid)
+
+        onDisconnect(statusRef).set({ isOnline: false })
+
+        loadUsers(currentUser.uid)
+        listenToUserStatuses()
+      } else {
+        setUser(null)
+        setUsers([])
+        setUserStatusMap({})
+        setActiveChatUser(null)
       }
+    })
 
-      // ✅ Foydalanuvchini Realtime DB ga saqlash
-      saveUserToRealtimeDb(currentUser)
-
-      // ✅ Realtime DB orqali online statusni sozlash
-      const statusRef = rtdbRef(realtimeDb, `usersStatus/${currentUser.uid}`)
-      await set(statusRef, { isOnline: true })
-      onDisconnect(statusRef).set({ isOnline: false })
-
-      loadUsers(currentUser.uid)
-      listenToUserStatuses()
-    } else {
-      setUser(null)
-      setUsers([])
-      setUserStatusMap({})
-      setActiveChatUser(null)
-    }
-  })
-
-  return unsubscribe
-}, [])
-
+    return unsubscribe
+  }, [])
 
   const loadUsers = async (currentUid) => {
     const q = query(collection(db, 'users'), orderBy('email'))
@@ -115,13 +144,14 @@ export default function App() {
       alert('Xabar yuborishda xatolik: ' + e.message)
     }
   }
-const handleGoogleLogin = async () => {
-  try {
-    await signInWithPopup(auth, provider)
-  } catch (error) {
-    alert('Kirishda xatolik: ' + error.message)
+
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithPopup(auth, provider)
+    } catch (error) {
+      alert('Kirishda xatolik: ' + error.message)
+    }
   }
-}
 
   const handleLogout = async () => {
     const statusRef = rtdbRef(realtimeDb, `usersStatus/${user.uid}`)
@@ -139,7 +169,6 @@ const handleGoogleLogin = async () => {
       setPinnedMessages([])
       return
     }
-console.log('USERS:', users);
 
     const chatId = getChatId(user.uid, activeChatUser.uid)
 
@@ -164,37 +193,38 @@ console.log('USERS:', users);
       unsubscribePinned()
     }
   }, [activeChatUser, user])
-useEffect(() => {
-  if (!user) return
 
-  const handleBeforeUnload = async () => {
-    const statusRef = rtdbRef(realtimeDb, `usersStatus/${user.uid}`)
-    await set(statusRef, { isOnline: false })
-  }
+  useEffect(() => {
+    if (!user) return
 
-  window.addEventListener('beforeunload', handleBeforeUnload)
+    const handleBeforeUnload = async () => {
+      const statusRef = rtdbRef(realtimeDb, `usersStatus/${user.uid}`)
+      await set(statusRef, { isOnline: false })
+    }
 
-
-
-  return () => {
-    window.removeEventListener('beforeunload', handleBeforeUnload)
-  }
-}, [user])
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [user])
 
   const handleDeleteChat = (uidToDelete) => {
     setChatToDelete(uidToDelete)
   }
 
-  const confirmDeleteChat = async (deleteForOther = false) => {
+  const confirmDeleteChat = async () => {
     if (!chatToDelete) return
+
     const chatId = getChatId(user.uid, chatToDelete)
     try {
       const msgsRef = collection(db, 'chats', chatId, 'messages')
       const msgsSnapshot = await getDocs(msgsRef)
+
       const batch = []
       msgsSnapshot.forEach((docSnap) => {
         batch.push(deleteDoc(doc(db, 'chats', chatId, 'messages', docSnap.id)))
       })
+
       await Promise.all(batch)
 
       setChatToDelete(null)
@@ -226,6 +256,7 @@ useEffect(() => {
         userStatusMap={userStatusMap}
         onLogout={handleLogout}
       />
+
       <div className="flex flex-col flex-1">
         {activeChatUser ? (
           <ChatWindow

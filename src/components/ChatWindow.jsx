@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import ChatHeader from './ChatHeader';
-import MessageBubble from './MessageBubble'; // import qiling
+import MessageBubble from './MessageBubble';
 
 export default function ChatWindow({ user, messages, onSend, currentUserUid }) {
-
   const [text, setText] = useState('');
 
   const handleSendText = () => {
@@ -15,31 +14,44 @@ export default function ChatWindow({ user, messages, onSend, currentUserUid }) {
 
   const handleDeleteMessage = (id) => {
     console.log('Xabar o‘chirilmoqda:', id);
-    // bu yerda o'chirishni Firebase yoki state orqali amalga oshiring
+    // Firebase orqali o‘chirishni shu yerda bajarish mumkin
   };
+
+  // Agar foydalanuvchi tanlanmagan bo‘lsa
+  if (!user) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-gray-400 text-lg bg-gray-900">
+        Foydalanuvchi tanlanmagan
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-gray-100">
-      <ChatHeader name={user.displayName} photoURL={user.photoURL} />
+      <ChatHeader
+  name={user.displayName || user.email}
+  photoURL={user.photoURL}
+  userId={user.uid}
+/>
 
 
-      {/* Xabarlar oynasi */}
+
+      {/* Xabarlar ro'yxati */}
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3">
         {messages.map((msg) => (
           <MessageBubble
-  key={msg.id}
-  text={msg.text}
-  isOwn={msg.senderId === currentUserUid}
-  timestamp={
-    msg.createdAt?.toDate?.()?.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    }) || ''
-  }
-  sent={!!msg.sent}
-  onRequestDelete={() => handleDeleteMessage(msg.id)}
-/>
-
+            key={msg.id}
+            text={msg.text}
+            isOwn={msg.senderId === currentUserUid}
+            timestamp={
+              msg.createdAt?.toDate?.()?.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              }) || ''
+            }
+            sent={!!msg.sent}
+            onRequestDelete={() => handleDeleteMessage(msg.id)}
+          />
         ))}
       </div>
 

@@ -8,18 +8,23 @@ export default function ChatHeader({ name, userId, photoURL }) {
   const [isOnline, setIsOnline] = useState(false);
 
   useEffect(() => {
-    if (!userId) return;
+  console.log('👤 ChatHeader userId:', userId);
+  if (!userId) return;
 
-    const db = getDatabase();
-    const statusRef = ref(db, `/status/${userId}`);
+  const db = getDatabase();
+  const statusRef = ref(db, `/usersStatus/${userId}`);
 
-    const unsubscribe = onValue(statusRef, (snapshot) => {
-      const data = snapshot.val();
-      setIsOnline(data?.state === 'online');
-    });
+  const unsubscribe = onValue(statusRef, (snapshot) => {
+    const data = snapshot.val();
+    console.log('📡 ChatHeader status data:', data);
+    setIsOnline(data?.isOnline ?? false);
+  });
 
-    return () => unsubscribe();
-  }, [userId]);
+  return () => unsubscribe();
+}, [userId]);
+
+
+
 
   return (
     <>
