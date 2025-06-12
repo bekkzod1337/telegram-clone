@@ -16,7 +16,6 @@ export default function ChatHeader({ name, userId, photoURL }) {
 
   const unsubscribe = onValue(statusRef, (snapshot) => {
     const data = snapshot.val();
-    console.log('📡 ChatHeader status data:', data);
     setIsOnline(data?.isOnline ?? false);
   });
 

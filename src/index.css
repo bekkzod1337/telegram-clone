@@ -8,6 +8,14 @@
     animation: fade-in 0.2s ease-out both;
   }
 }
+/* Tailwind CSS animatsiyasi uchun qo‘shimcha (global.css faylingizga qo‘shing) */
+@keyframes slide-in {
+  0% { opacity: 0; transform: translateY(-20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
 
 @keyframes typingBounce {
   0%, 80%, 100% {

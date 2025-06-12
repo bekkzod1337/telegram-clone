@@ -51,6 +51,17 @@ export default function App() {
   const [chatToDelete, setChatToDelete] = useState(null)
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' })
 
+  const [selectedUser, setSelectedUser] = useState(null);
+
+const handleOpenChatById = (userId) => {
+  const userToOpen = users.find(u => u.uid === userId) // ✅ 'users' to‘g‘ri nom
+  if (userToOpen) {
+    setActiveChatUser(userToOpen) // yoki setSelectedUser, agar kerak bo‘lsa
+  }
+}
+
+
+
   const saveUserToRealtimeDb = (user) => {
     set(rtdbRef(realtimeDb, 'users/' + user.uid), {
       email: user.email,
@@ -260,12 +271,14 @@ console.log('🟢 Status set to online:', currentUser.uid)
       <div className="flex flex-col flex-1">
         {activeChatUser ? (
           <ChatWindow
-            user={activeChatUser}
-            messages={messages}
-            onSend={handleSendMessage}
-            currentUserUid={user.uid}
-            userStatusMap={userStatusMap}
-          />
+  user={activeChatUser}
+  messages={messages}
+  onSend={handleSendMessage}
+  currentUserUid={user.uid}
+  onOpenChatById={handleOpenChatById}
+/>
+
+
         ) : (
           <div className="flex-1 flex items-center bg-gray-800 justify-center text-gray-500">
             Chat tanlanmagan
@@ -282,11 +295,12 @@ console.log('🟢 Status set to online:', currentUser.uid)
       )}
 
       <NotificationToast
-        open={notification.open}
-        onClose={() => setNotification({ ...notification, open: false })}
-        message={notification.message}
-        severity={notification.severity}
-      />
+  open={notification.open}
+  onClose={() => setNotification({ ...notification, open: false })}
+  message={notification.message}
+  severity={notification.severity}
+/>
+
     </div>
   )
 }

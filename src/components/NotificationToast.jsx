@@ -1,22 +1,19 @@
-import { Snackbar, Alert } from '@mui/material';
+// components/NotificationToast.jsx
+import { Snackbar, Alert } from '@mui/material'
 
-export default function NotificationToast({
-  open,
-  onClose,
-  message,
-  severity = 'info',
-  autoHideDuration = 3000,
-}) {
-  const handleClose = (event, reason) => {
-    if (reason === 'clickaway') return; // Foydalanuvchi tashqariga bosganida yopilmasin
-    onClose();
-  };
-
+const NotificationToast = ({ open, message, severity = 'info', onClose }) => {
   return (
-    <Snackbar open={open} autoHideDuration={autoHideDuration} onClose={handleClose}>
-      <Alert onClose={handleClose} severity={severity} sx={{ width: '100%' }}>
+    <Snackbar
+      open={open}
+      autoHideDuration={4000}
+      onClose={onClose}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+    >
+      <Alert onClose={onClose} severity={severity} sx={{ width: '100%' }}>
         {message}
       </Alert>
     </Snackbar>
-  );
+  )
 }
+
+export default NotificationToast
