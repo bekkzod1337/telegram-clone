@@ -8,7 +8,6 @@ export default function ChatHeader({ name, userId, photoURL }) {
   const [isOnline, setIsOnline] = useState(false);
 
   useEffect(() => {
-  console.log('👤 ChatHeader userId:', userId);
   if (!userId) return;
 
   const db = getDatabase();

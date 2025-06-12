@@ -90,7 +90,6 @@ const handleOpenChatById = (userId) => {
 
         const statusRef = rtdbRef(realtimeDb, `usersStatus/${currentUser.uid}`)
         await set(statusRef, { isOnline: true })
-console.log('🟢 Status set to online:', currentUser.uid)
 
         onDisconnect(statusRef).set({ isOnline: false })
 
