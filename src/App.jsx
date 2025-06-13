@@ -265,6 +265,10 @@ const handleOpenChatById = (userId) => {
         currentUserUid={user.uid}
         userStatusMap={userStatusMap}
         onLogout={handleLogout}
+        onOpenGroupModal={() => setShowGroupModal(true)}
+        onOpenChannelModal={() => setShowChannelModal(true)}
+        onOpenSettings={() => setShowSettingsPanel(true)}
+        isLoading={!users.length}
       />
 
       <div className="flex flex-col flex-1">

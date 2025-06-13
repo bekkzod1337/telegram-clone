@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Menu } from 'lucide-react'; // Menyu icon
+import { Menu, Settings as SettingsIcon } from 'lucide-react';
 import SearchBar from './SearchBar';
 import ChatListItem from './ChatListItem';
+import ChatListSkeleton from './ChatListSkeleton';
 
 export default function Sidebar({
   users,
@@ -10,9 +11,15 @@ export default function Sidebar({
   onDeleteChat,
   currentUserUid,
   userStatusMap,
+  onOpenGroupModal,
+  onOpenChannelModal,
+  onLogout,
+  onOpenSettings,
+  isLoading,
 }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [isOpen, setIsOpen] = useState(false); // Mobil menyu holati
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const filteredUsers = users.filter((u) =>
     u.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -43,11 +50,11 @@ export default function Sidebar({
         </button>
       </div>
 
-      {/* Sidebar: kompyuterda doim ko‘rinadi, mobilda faqat ochilganda */}
+      {/* Sidebar */}
       <div
         className={`fixed md:static z-40 top-0 left-0 h-full md:h-auto w-64 transition-transform transform ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0 ${theme.bg} ${theme.border} border-r max-h-screen overflow-auto`}
+        } md:translate-x-0 ${theme.bg} ${theme.border} border-r max-h-screen overflow-auto flex flex-col select-none`}
       >
         <h2
           className={`p-4 font-semibold text-xl ${theme.border} border-b ${theme.headerBg} sticky top-0 z-10 ${theme.textPrimary}`}
@@ -61,12 +68,16 @@ export default function Sidebar({
           <SearchBar onSearch={setSearchTerm} darkMode={true} />
         </div>
 
-        {filteredUsers.length === 0 ? (
-          <div className={`p-4 ${theme.textSecondary} text-center italic select-none`}>
+        {isLoading ? (
+          <ChatListSkeleton />
+        ) : filteredUsers.length === 0 ? (
+          <div
+            className={`p-4 ${theme.textSecondary} text-center italic select-none`}
+          >
             Topilmadi
           </div>
         ) : (
-          <ul>
+          <ul className="flex-grow overflow-auto">
             {filteredUsers.map((u) => {
               const isOnline = userStatusMap?.[u.uid]?.isOnline;
               return (
@@ -82,8 +93,9 @@ export default function Sidebar({
                     lastMessage={u.lastMessage?.text || 'Yangi suhbat'}
                     onClick={() => {
                       onSelect(u);
-                      setIsOpen(false); // Mobilda foydalanuvchini tanlagach menyuni yopish
+                      setIsOpen(false); // mobil menyuni yopish
                     }}
+                    onConfirmDelete={() => onDeleteChat(u.uid)}
                     isOnline={isOnline}
                   />
                   <button
@@ -101,9 +113,63 @@ export default function Sidebar({
             })}
           </ul>
         )}
+
+        {/* Sozlamalar tugmasi */}
+        <div className="p-4 border-t border-gray-700 relative">
+          <button
+            onClick={() => setIsSettingsOpen((prev) => !prev)}
+            className="flex items-center gap-2 text-gray-300 hover:text-white focus:outline-none"
+          >
+            <SettingsIcon size={20} />
+            <span>Sozlamalar</span>
+          </button>
+
+          {isSettingsOpen && (
+            <div className="absolute bottom-14 left-4 bg-gray-800 border border-gray-700 rounded-md shadow-lg w-48 z-50">
+              <ul className="flex flex-col text-sm text-gray-200">
+                <li
+                  className="px-4 py-2 hover:bg-blue-900 cursor-pointer"
+                  onClick={() => {
+                    setIsSettingsOpen(false);
+                    onOpenSettings?.();
+                  }}
+                >
+                  ⚙️ Sozlamalar
+                </li>
+                <li
+                  className="px-4 py-2 hover:bg-blue-900 cursor-pointer"
+                  onClick={() => {
+                    setIsSettingsOpen(false);
+                    onOpenGroupModal?.();
+                  }}
+                >
+                  👥 Guruh yaratish
+                </li>
+                <li
+                  className="px-4 py-2 hover:bg-blue-900 cursor-pointer"
+                  onClick={() => {
+                    setIsSettingsOpen(false);
+                    onOpenChannelModal?.();
+                  }}
+                >
+                  📢 Kanal yaratish
+                </li>
+                <li
+                  className="px-4 py-2 hover:bg-blue-900 cursor-pointer text-red-400"
+                  onClick={() => {
+                    setIsSettingsOpen(false);
+                    onLogout?.();
+                  }}
+                >
+                  🚪 Chiqish
+                </li>
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Mobil menyuni yopinganda fonni bosganda ham yopilsin */}
+      {/* Overlay mobil menyuni yopish uchun */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
